@@ -1,14 +1,15 @@
 package redis
 
 import (
-	"net"
-	"time"
 	"bufio"
-	"fmt"
-	"strconv"
-	"io"
 	"errors"
+	"fmt"
+	"io"
+	"net"
+	"strconv"
+	"strings"
 	"sync/atomic"
+	"time"
 )
 
 var (
@@ -42,7 +43,11 @@ type redisConn struct {
 }
 
 func (conn *redisConn) auth(password string) (err error) {
-	if err = conn.send("AUTH", password); err != nil {
+	var args []interface{}
+	for _, arg := range strings.Split(password, ":") {
+		args = append(args, arg)
+	}
+	if err = conn.send("AUTH", args...); err != nil {
 		conn.shutdown()
 		return
 	}
@@ -279,13 +284,13 @@ func (conn *redisConn) readReply() (interface{}, error) {
 		 * return line, nil
 		 */
 
-		buf := make([]byte, n + 2)
+		buf := make([]byte, n+2)
 		x, err := io.ReadFull(conn.br, buf)
 		if err != nil {
 			return nil, err
 		}
 
-		if x < n || buf[n] != '\r' || buf[n + 1] != '\n' {
+		if x < n || buf[n] != '\r' || buf[n+1] != '\n' {
 			return nil, fmt.Errorf("invalid response: length[%v] != n[%v] or suffix != \r\n, line: %v",
 				len(buf), n, buf)
 		}
@@ -315,7 +320,6 @@ func (conn *redisConn) readReply() (interface{}, error) {
 
 	return nil, fmt.Errorf("invalid response: line[0]: %v", line[0])
 }
-
 
 // parseLen parses bulk string and array length.
 func parseLen(p []byte) (int, error) {
