@@ -74,7 +74,7 @@ func (node *redisNode) getConn() (*redisConn, error) {
 	if node.conns.Len() <= 0 {
 		node.mutex.Unlock()
 
-		c, err := net.DialTimeout("tcp", node.address, node.connTimeout)
+		c, err := net.Dial("tcp", node.address, redis.DialConnectTimeout(node.connTimeout), net.DialUseTLS(true))
 		if err != nil {
 			return nil, err
 		}
