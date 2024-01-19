@@ -22,6 +22,7 @@ import (
 	"time"
 	"bufio"
 	"container/list"
+	"crypto/tls"
 )
 
 type redisNode struct {
@@ -74,7 +75,11 @@ func (node *redisNode) getConn() (*redisConn, error) {
 	if node.conns.Len() <= 0 {
 		node.mutex.Unlock()
 
-		c, err := net.Dial("tcp", node.address, redis.DialConnectTimeout(node.connTimeout), net.DialUseTLS(true))
+		conf :=&tls.Config{
+				InsecureSkipVerify: true,
+		}
+
+		c, err := tls.DialWithDialer(&net.Dialer{Timeout: node.connTimeout},"tcp", node.address, conf)
 		if err != nil {
 			return nil, err
 		}
